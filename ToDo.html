@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Todo App</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+    }
+    .todo-container {
+        max-width: 400px;
+        margin: 0 auto;
+    }
+    .todo-item {
+        margin-bottom: 10px;
+    }
+    .todo-item input[type="checkbox"] {
+        margin-right: 10px;
+    }
+    .todo-item input[type="text"] {
+        margin-right: 10px;
+    }
+    .search-bar {
+        margin-bottom: 10px;
+    }
+    /* Animation */
+    @keyframes fadein {
+        from { opacity: 0; }
+        to   { opacity: 1; }
+    }
+    .fade-in {
+        animation: fadein 0.5s;
+    }
+</style>
+</head>
+<body>
+<div class="todo-container">
+    <h1>Todo List</h1>
+    <input type="text" id="todoInput" placeholder="Add new todo">
+    <button id="addTodoBtn">Add</button>
+    <input type="text" id="searchInput" class="search-bar" placeholder="Search todo">
+    <ul id="todoList"></ul>
+</div>
+
+<script>
+    // Model
+    class Todo {
+        constructor(text) {
+            this.text = text;
+            this.completed = false;
+        }
+    }
+
+    // View
+    class TodoView {
+        constructor() {
+            this.todoList = document.getElementById('todoList');
+            this.todoInput = document.getElementById('todoInput');
+            this.searchInput = document.getElementById('searchInput');
+            this.addTodoBtn = document.getElementById('addTodoBtn');
+        }
+
+        bindAddTodo(handler) {
+            this.addTodoBtn.addEventListener('click', () => {
+                const text = this.todoInput.value.trim();
+                if (text !== '') {
+                    handler(text);
+                    this.todoInput.value = '';
+                }
+            });
+        }
+
+        bindToggleTodoCompleted(handler) {
+            this.todoList.addEventListener('change', (event) => {
+                if (event.target.type === 'checkbox') {
+                    const index = event.target.parentElement.dataset.index;
+                    handler(index);
+                }
+            });
+        }
+
+        bindEditTodo(handler) {
+            this.todoList.addEventListener('change', (event) => {
+                if (event.target.type === 'text') {
+                    const index = event.target.parentElement.dataset.index;
+                    const newText = event.target.value;
+                    handler(index, newText);
+                }
+            });
+        }
+
+        bindDeleteTodo(handler) {
+            this.todoList.addEventListener('click', (event) => {
+                if (event.target.tagName === 'BUTTON') {
+                    const index = event.target.parentElement.dataset.index;
+                    handler(index);
+                }
+            });
+        }
+
+        bindSearchTodos(handler) {
+            this.searchInput.addEventListener('input', () => {
+                handler(this.searchInput.value);
+            });
+        }
+
+        displayTodos(todos) {
+            this.todoList.innerHTML = '';
+            todos.forEach((todo, index) => {
+                const todoItem = document.createElement('li');
+                todoItem.className = 'todo-item fade-in';
+                todoItem.dataset.index = index;
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.checked = todo.completed;
+                const todoText = document.createElement('input');
+                todoText.type = 'text';
+                todoText.value = todo.text;
+                const deleteButton = document.createElement('button');
+                deleteButton.innerText = 'Delete';
+                
+                todoItem.appendChild(checkbox);
+                todoItem.appendChild(todoText);
+                todoItem.appendChild(deleteButton);
+                this.todoList.appendChild(todoItem);
+            });
+        }
+    }
+
+    // Controller
+    class TodoController {
+        constructor(model, view) {
+            this.model = model;
+            this.view = view;
+
+            this.view.bindAddTodo(this.handleAddTodo.bind(this));
+            this.view.bindToggleTodoCompleted(this.handleToggleTodoCompleted.bind(this));
+            this.view.bindEditTodo(this.handleEditTodo.bind(this));
+            this.view.bindDeleteTodo(this.handleDeleteTodo.bind(this));
+            this.view.bindSearchTodos(this.handleSearchTodos.bind(this));
+
+            this.render();
+        }
+
+        render() {
+            this.view.displayTodos(this.model.todos);
+        }
+
+        handleAddTodo(text) {
+            this.model.addTodo(text);
+            this.render();
+        }
+
+        handleToggleTodoCompleted(index) {
+            this.model.toggleTodoCompleted(index);
+            this.render();
+        }
+
+        handleEditTodo(index, newText) {
+            this.model.editTodo(index, newText);
+        }
+
+        handleDeleteTodo(index) {
+            this.model.deleteTodo(index);
+            this.render();
+        }
+
+        handleSearchTodos(query) {
+            const filteredTodos = this.model.searchTodos(query);
+            this.view.displayTodos(filteredTodos);
+        }
+    }
+
+    // Initialize
+    const model = {
+        todos: [],
+
+        addTodo: function(text) {
+            this.todos.push(new Todo(text));
+        },
+
+        toggleTodoCompleted: function(index) {
+            this.todos[index].completed = !this.todos[index].completed;
+        },
+
+        editTodo: function(index, newText) {
+            this.todos[index].text = newText;
+        },
+
+        deleteTodo: function(index) {
+            this.todos.splice(index, 1);
+        },
+
+        searchTodos: function(query) {
+            return this.todos.filter(todo => todo.text.toLowerCase().includes(query.toLowerCase()));
+        }
+    };
+
+    const view = new TodoView();
+    const controller = new TodoController(model, view);
+</script>
+</body>
+</html>
